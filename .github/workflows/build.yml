@@ -1,0 +1,62 @@
+name: android-gradle-prebuilt-release-actions-workflow
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'c*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+#     - uses: actions/setup-python@v4
+#       with:
+#         python-version: 3.x
+
+    - name: setup env
+      run: |
+        #!/bin/bash
+        # Installs Android SDK, NDK, and CMake required to build the samples.
+        if [ -f ~/.android/repositories.cfg ]; then
+          touch ~/.android/repositories.cfg
+        fi
+
+        for version in $(find . -name build.gradle | xargs grep -h compileSdk | sort | uniq | grep -o '[0-9]\+ *$'); do
+            echo y | $ANDROID_HOME/tools/bin/sdkmanager "platforms;android-${version}"
+        done
+
+        for version in $(find . -name build.gradle | xargs grep -h ndkVersion | sort | uniq | cut -d \' -f 2); do
+            echo y | $ANDROID_HOME/tools/bin/sdkmanager "ndk;${version}"
+        done
+
+        echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "cmake;3.18.1"
+        echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "cmake;3.22.1"
+        
+        # Guess ANDROID_HOME if it's not set, and also detect arch.
+        export ANDROID_HOME=${ANDROID_HOME:-${HOME}/Android/Sdk}
+        export ANDROID_NDK_HOME=$ANDROID_HOME/ndk-bundle
+        export ARCH_DIR=linux-x86_64
+
+        # Guess the latest version of the NDK we are using, and use that everywhere.
+        export NDK_VERSION=$(find . -name build.gradle | xargs grep -h ndkVersion | sort -n | uniq | cut -d \' -f 2 | tail -1)
+        
+        chmod 777 ./gradlew && ./gradlew --no-daemon assembleRelease
+    
+      - run: cd ./app/build/outputs/apk && ls -R
+      
+      - name: Release prebuilt
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "app/build/outputs/apk/release/app-release-unsigned.apk"
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
