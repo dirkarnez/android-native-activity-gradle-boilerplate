@@ -53,8 +53,7 @@ jobs:
         
         chmod 777 ./gradlew && ./gradlew --no-daemon assembleRelease
 
-        cd ./app/build/outputs/apk && ls -R &&
-        chmod 777 ./app-release-unsigned.apk &&
+        cd ./app/build/outputs/apk/release && ls -R &&
         keytool -genkeypair -validity 10000 -dname "CN=Kolodez, OU=Kolodez, O=Kolodez, C=US" -keystore ./mykey.keystore -storepass mypass -keypass mypass -alias myalias -keyalg RSA
         jarsigner -keystore ./mykey.keystore -storepass mypass -keypass mypass -signedjar ./app-release-signed.apk ./app-release-unsigned.apk myalias
         $ANDROID_HOME/build-tools/27.0.1/zipalign -f 4 ./app-release-signed.apk ./app-release.apk
