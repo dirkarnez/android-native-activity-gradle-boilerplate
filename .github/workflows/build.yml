@@ -41,6 +41,7 @@ jobs:
 
         echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "cmake;3.18.1"
         echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "cmake;3.22.1"
+        echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;27.0.1"
         
         # Guess ANDROID_HOME if it's not set, and also detect arch.
         export ANDROID_HOME=${ANDROID_HOME:-${HOME}/Android/Sdk}
@@ -52,11 +53,14 @@ jobs:
         
         chmod 777 ./gradlew && ./gradlew --no-daemon assembleRelease
 
-    - run: cd ./app/build/outputs/apk && ls -R
+        cd ./app/build/outputs/apk && ls -R &&
+        keytool -genkeypair -validity 10000 -dname "CN=Kolodez, OU=Kolodez, O=Kolodez, C=US" -keystore ./mykey.keystore -storepass mypass -keypass mypass -alias myalias -keyalg RSA
+        jarsigner -keystore ./mykey.keystore -storepass mypass -keypass mypass -signedjar ./app-release-signed.apk ./app-release-unsigned.apk myalias
+        $ANDROID_HOME/build-tools/27.0.1/zipalign -f 4 ./app-release-unsigned.apk ./app-release.apk
 
     - name: Release prebuilt
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "app/build/outputs/apk/release/app-release-unsigned.apk"
+        artifacts: "app/build/outputs/apk/release/app-release.apk"
         allowUpdates: true
         token: ${{ secrets.GITHUB_TOKEN }}
