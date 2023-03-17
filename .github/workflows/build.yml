@@ -51,12 +51,12 @@ jobs:
         export NDK_VERSION=$(find . -name build.gradle | xargs grep -h ndkVersion | sort -n | uniq | cut -d \' -f 2 | tail -1)
         
         chmod 777 ./gradlew && ./gradlew --no-daemon assembleRelease
-    
-      - run: cd ./app/build/outputs/apk && ls -R
-      
-      - name: Release prebuilt
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "app/build/outputs/apk/release/app-release-unsigned.apk"
-          allowUpdates: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+    - run: cd ./app/build/outputs/apk && ls -R
+
+    - name: Release prebuilt
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "app/build/outputs/apk/release/app-release-unsigned.apk"
+        allowUpdates: true
+        token: ${{ secrets.GITHUB_TOKEN }}
